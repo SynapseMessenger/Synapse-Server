@@ -14,7 +14,9 @@
   },
   "dependencies": {
     "express": "*",
-    "socket.io": "*"
+    "socket.io": "*",
+    "bcrypt": "*",
+    "mongoose": "*"
   },
   "devDependencies": {},
   "repository": {
