@@ -41,17 +41,17 @@ class ChatServer {
   }
 
   handleClientConnection(socket, username){
-    // const onlineUsers = dbHandler.onlineUsers();
     dbHandler.saveUserUsername(username, (err, res) => {
       if(!err){
         printUserEvent(username, "entered the chat");
         dbHandler.onlineUsers((err, onlineUsers) => {
           if(!err){
-            socket.emit('welcome-msg', {
+            socket.emit('init-connection-msg', {
               status: "connected",
               onlineUsers
             });
             this.listenClientEvents(socket, username);
+            socket.broadcast.emit('user-connected', username);
           }
         });
       } else {

@@ -11,7 +11,7 @@ const userSchema = mongoose.Schema({
     type: String,
     required: true,
     match: [dbConfig.regexp.username, 'Invalid username'],
-    unique: true
+    unique: false // TODO: Change to unique
   },
   // email: {
   //   type: String,
