@@ -56,6 +56,7 @@ class ChatServer {
           if(!err){
             socket.emit('init-connection-msg', {
               status: "connected",
+              user: res,
               onlineUsers
             });
             this.listenClientEvents(socket, res);
@@ -75,19 +76,22 @@ class ChatServer {
   listenClientEvents(socket, user){
 
     socket.on('init-chat', (message) => {
+      console.log("init-chat", message);
       const receiverSocket = this.userSockets.get(message.receiverId);
       receiverSocket.emit('init-chat', { emiterId: user._id });
     });
 
     socket.on('accept-chat', (message) => {
+      console.log("accept-chat", message);
       const emiterSocket = this.userSockets.get(message.emiterId);
-      emiterSocket.emit('accept-chat', { receiverId: message.user._id });
+      emiterSocket.emit('accept-chat', { receiverId: message.userId });
     });
 
     socket.on('chat-msg', (message) => {
-      if(isSessionEstablished(message.user._id, message.receiverId)){
+      console.log("chat-msg", message);
+      if(isSessionEstablished(message.userId, message.receiverId)){
         const receiverSocket = this.userSockets.get(message.receiverId);
-        receiverSocket.emit('chat-msg', { emiterId: message.user._id, message: message.text });
+        receiverSocket.emit('chat-msg', { emiterId: message.userId, message: message.text });
       }
     });
  
