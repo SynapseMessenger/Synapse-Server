@@ -9,6 +9,7 @@ class ChatServer {
     this.io = socketIo();
     this.port = port || 9090;
     this.dbUrl =  dbUrl || 'mongodb://localhost/synapse_server';
+    this.userSockets = new Map();
   }
 
   start(){
@@ -40,17 +41,24 @@ class ChatServer {
     });
   }
 
+  saveUserSocket(userId, socket){
+    this.userSockets.set(userId, socket);
+    console.log("User sockets: ", this.userSockets.entries());
+  }
+
   handleClientConnection(socket, username){
     dbHandler.saveUserUsername(username, (err, res) => {
       if(!err){
         printUserEvent(username, "entered the chat");
+        this.saveUserSocket(res._id, socket);
+        console.log("Saved user: ", res);
         dbHandler.onlineUsers((err, onlineUsers) => {
           if(!err){
             socket.emit('init-connection-msg', {
               status: "connected",
               onlineUsers
             });
-            this.listenClientEvents(socket, username);
+            this.listenClientEvents(socket, res);
             socket.broadcast.emit('user-connected', username);
           }
         });
@@ -60,14 +68,33 @@ class ChatServer {
     });
   }
 
-  listenClientEvents(socket, username){
-    socket.on('client-msg', (client_message) => {
-      socket.broadcast.emit('client-msg', client_message);
+  isSessionEstablished(userA, userB){
+    return true;
+  }
+
+  listenClientEvents(socket, user){
+
+    socket.on('init-chat', (message) => {
+      const receiverSocket = this.userSockets.get(message.receiverId);
+      receiverSocket.emit('init-chat', { emiterId: user._id });
+    });
+
+    socket.on('accept-chat', (message) => {
+      const emiterSocket = this.userSockets.get(message.emiterId);
+      emiterSocket.emit('accept-chat', { receiverId: message.user._id });
+    });
+
+    socket.on('chat-msg', (message) => {
+      if(isSessionEstablished(message.user._id, message.receiverId)){
+        const receiverSocket = this.userSockets.get(message.receiverId);
+        receiverSocket.emit('chat-msg', { emiterId: message.user._id, message: message.text });
+      }
     });
  
     socket.on('disconnect', () => {
-      printUserEvent(username, "disconnected");
+      printUserEvent(user.username, "disconnected");
     });
+
   }
 }
 
