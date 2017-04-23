@@ -75,28 +75,23 @@ class ChatServer {
 
   listenClientEvents(socket, user){
 
-    socket.on('init-chat', (message) => {
-      console.log("init-chat", message);
-      console.log("receiver id: ", message.receiverId, typeof message.receiverId)
-      const receiverSocket = this.userSockets[message.receiverId];
-      debugger;
+    socket.on('init-chat', (data) => {
+      const receiverSocket = this.userSockets[data.receiverId];
       receiverSocket.emit('init-chat', { emitterId: user._id });
     });
 
-    socket.on('accept-chat', (message) => {
-      console.log("accept-chat", message);
-      const emitterSocket = this.userSockets[message.emitterId];
-      emitterSocket.emit('accept-chat', { receiverId: message.userId });
+    socket.on('accept-chat', (data) => {
+      const emitterSocket = this.userSockets[data.emitterId];
+      emitterSocket.emit('accept-chat', { receiverId: data.receiverId });
     });
 
-    socket.on('chat-msg', (message) => {
-      console.log("chat-msg", message);
-      if(this.isSessionEstablished(message.emitterId, message.receiverId)){
-        const receiverSocket = this.userSockets[message.receiverId];
-        // console.log("user sockets: ", this.userSockets);
-        // console.log("receiver id: ", message.receiverId, typeof message.receiverId)
-        // console.log("Receiver socket: ", receiverSocket);
-        receiverSocket.emit('chat-msg', { emitterId: message.emitterId, message: message.text });
+    socket.on('chat-msg', (data) => {
+      if(this.isSessionEstablished(data.emitterId, data.receiverId)){
+        const receiverSocket = this.userSockets[data.receiverId];
+        receiverSocket.emit('chat-msg', {
+          emitterId: data.emitterId,
+          message: data.message
+        });
       }
     });
  
