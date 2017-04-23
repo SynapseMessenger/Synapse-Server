@@ -9,7 +9,7 @@ class ChatServer {
     this.io = socketIo();
     this.port = port || 9090;
     this.dbUrl =  dbUrl || 'mongodb://localhost/synapse_server';
-    this.userSockets = new Map();
+    this.userSockets = {};
   }
 
   start(){
@@ -42,16 +42,16 @@ class ChatServer {
   }
 
   saveUserSocket(userId, socket){
-    this.userSockets.set(userId, socket);
-    console.log("User sockets: ", this.userSockets.entries());
+    console.log("saving user socket", userId, typeof userId);
+    this.userSockets[userId] = socket;
   }
 
   handleClientConnection(socket, username){
     dbHandler.saveUserUsername(username, (err, res) => {
       if(!err){
         printUserEvent(username, "entered the chat");
-        this.saveUserSocket(res._id, socket);
-        console.log("Saved user: ", res);
+        const userId = res._id;
+        this.saveUserSocket(userId, socket);
         dbHandler.onlineUsers((err, onlineUsers) => {
           if(!err){
             socket.emit('init-connection-msg', {
@@ -77,21 +77,26 @@ class ChatServer {
 
     socket.on('init-chat', (message) => {
       console.log("init-chat", message);
-      const receiverSocket = this.userSockets.get(message.receiverId);
-      receiverSocket.emit('init-chat', { emiterId: user._id });
+      console.log("receiver id: ", message.receiverId, typeof message.receiverId)
+      const receiverSocket = this.userSockets[message.receiverId];
+      debugger;
+      receiverSocket.emit('init-chat', { emitterId: user._id });
     });
 
     socket.on('accept-chat', (message) => {
       console.log("accept-chat", message);
-      const emiterSocket = this.userSockets.get(message.emiterId);
-      emiterSocket.emit('accept-chat', { receiverId: message.userId });
+      const emitterSocket = this.userSockets[message.emitterId];
+      emitterSocket.emit('accept-chat', { receiverId: message.userId });
     });
 
     socket.on('chat-msg', (message) => {
       console.log("chat-msg", message);
-      if(isSessionEstablished(message.userId, message.receiverId)){
-        const receiverSocket = this.userSockets.get(message.receiverId);
-        receiverSocket.emit('chat-msg', { emiterId: message.userId, message: message.text });
+      if(this.isSessionEstablished(message.emitterId, message.receiverId)){
+        const receiverSocket = this.userSockets[message.receiverId];
+        // console.log("user sockets: ", this.userSockets);
+        // console.log("receiver id: ", message.receiverId, typeof message.receiverId)
+        // console.log("Receiver socket: ", receiverSocket);
+        receiverSocket.emit('chat-msg', { emitterId: message.emitterId, message: message.text });
       }
     });
  

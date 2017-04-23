@@ -5,7 +5,8 @@
   "main": "app.js",
   "scripts": {
     "test": "npm test",
-    "start": "node app.js"
+    "start": "node app.js",
+    "debug": "node debug app.js"
   },
   "author": "marcofp",
   "license": "MIT",
