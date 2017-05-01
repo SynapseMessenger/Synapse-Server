@@ -14,10 +14,12 @@ class ChatServer {
 
   start(){
     this.connectToDB();
+    // TODO: Set all users to offline.
     this.listenConnections();
     this.io.listen(this.port);
   }
 
+  // TODO: Move to dbHandler ???
   connectToDB(){
     mongoose.Promise = global.Promise;
     mongoose.connect(this.dbUrl);
@@ -42,35 +44,49 @@ class ChatServer {
   }
 
   saveUserSocket(userId, socket){
-    console.log("saving user socket", userId, typeof userId);
     this.userSockets[userId] = socket;
   }
 
   handleClientConnection(socket, username){
-    dbHandler.saveUserUsername(username, (err, res) => {
-      if(!err){
-        printUserEvent(username, "entered the chat");
-        const userId = res._id;
-        this.saveUserSocket(userId, socket);
-        dbHandler.onlineUsers((err, onlineUsers) => {
-          if(!err){
-            socket.emit('init-connection-msg', {
-              status: "connected",
-              user: res,
-              onlineUsers
-            });
-            this.listenClientEvents(socket, res);
-            socket.broadcast.emit('user-connected', username);
-          }
-        });
-      } else {
-        console.log("Error saving user: ", err);
+    dbHandler.findUser(username, (findUserError, user) => {
+      if(!findUserError){
+        if(user){
+          console.log("Existent user connected: ", user);
+          dbHandler.setUserConnectionStatus(user, true, (connectedError) => {
+            if(!connectedError) this.sendUserInitialData(user, socket);
+          });
+        } else {
+          dbHandler.saveUserUsername(username, (saveUserError, user) => {
+            if(!saveUserError){
+              console.log("Saved new user: ", user);
+              printUserEvent(username, "entered the chat");
+              this.sendUserInitialData(user, socket);
+            }
+          });
+        }
       }
     });
   }
 
-  isSessionEstablished(userA, userB){
-    return true;
+  sendUserInitialData(user, socket){
+    let errors = false;
+    dbHandler.onlineUsers((onUsersError, onlineUsers) => {
+      if(!onUsersError){
+        dbHandler.pendingMessages(user._id, (pendingError, pendingMessages) => {
+          if(!pendingError){
+            console.log("Pending messages: ", pendingMessages);
+            socket.emit('init-connection-msg', {
+              status: "connected",
+              user,
+              onlineUsers
+            });
+            socket.broadcast.emit('user-connected', user.username);
+            this.saveUserSocket(user._id, socket);
+            this.listenClientEvents(socket, user);
+          }
+        })
+      }
+    });
   }
 
   listenClientEvents(socket, user){
@@ -81,22 +97,45 @@ class ChatServer {
     });
 
     socket.on('accept-chat', (data) => {
-      const emitterSocket = this.userSockets[data.emitterId];
-      emitterSocket.emit('accept-chat', { receiverId: data.receiverId });
+      const emitterSocket = this.userSockets[data.receiverId];
+      emitterSocket.emit('accept-chat', { receiverId: data.emitterId });
     });
 
     socket.on('chat-msg', (data) => {
-      if(this.isSessionEstablished(data.emitterId, data.receiverId)){
-        const receiverSocket = this.userSockets[data.receiverId];
-        receiverSocket.emit('chat-msg', {
-          emitterId: data.emitterId,
-          message: data.message
-        });
-      }
+      const { receiverId, emitterId } = data.message;
+      const { message } = data;
+      dbHandler.isSessionEstablished(emitterId, receiverId, (session) => {
+        console.log("Chat message received!", data);
+        if(session){
+          dbHandler.isOnline(receiverId, (isOnError, isOnline) => {
+            console.log("Is online:", isOnline);
+            console.log("Is online error: ", isOnError);
+            if(!isOnError){
+              if(isOnline){
+                console.log("Sending message!!!!");
+                console.log("User sockets: ", this.userSockets);
+                const receiverSocket = this.userSockets[receiverId];
+                receiverSocket.emit('chat-msg', {
+                  message
+                });
+              } else {
+                console.log("Saving pendingMessage: ", message);
+                dbHandler.savePendingMessage(receiverId, message);
+              }
+            }
+          });
+        }
+      });
     });
  
     socket.on('disconnect', () => {
-      printUserEvent(user.username, "disconnected");
+      dbHandler.setUserConnectionStatus(user, false, (err) => {
+        if(!err){
+          printUserEvent(user.username, "disconnected");
+        } else {
+          printUserEvent(user.username, "error on disconnect.");
+        }
+      });
     });
 
   }

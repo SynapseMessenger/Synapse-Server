@@ -28,7 +28,14 @@ const userSchema = mongoose.Schema({
     type: Boolean,
     index: true,
     default: false
-  }
+  },
+
+  pendingMessages: [{
+      text: String,
+      emitterId: String,
+      receiverId: String,
+      time: Date
+  }]
 });
 
 // Before saving the password, hash it.
@@ -49,7 +56,7 @@ userSchema.pre('save', function(next) {
 });
 
 // Before update, hash password.
-userSchema.pre('update', (next)=> {
+/*userSchema.pre('update', (next)=> {
   const query = this._update.$set;
   if (query.password) {
     if (!dbConfig.regexp.password.test(query.password)) {
@@ -66,7 +73,7 @@ userSchema.pre('update', (next)=> {
       });
     }
   }
-});
+});*/
 
 // Methods
 
