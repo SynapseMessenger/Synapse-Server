@@ -70,7 +70,7 @@ class ChatServer {
 
   sendUserInitialData(user, socket){
     let errors = false;
-    dbHandler.onlineUsers((onUsersError, onlineUsers) => {
+    dbHandler.allUsers((onUsersError, allUsers) => {
       if(!onUsersError){
         dbHandler.pendingMessages(user._id, (pendingError, pendingMessages) => {
           if(!pendingError){
@@ -78,7 +78,7 @@ class ChatServer {
             socket.emit('init-connection-msg', {
               status: "connected",
               user,
-              onlineUsers
+              allUsers
             });
             socket.broadcast.emit('user-connected', user.username);
             this.saveUserSocket(user._id, socket);

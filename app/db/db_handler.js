@@ -29,6 +29,12 @@ const Handler = {
     });
   },
 
+  allUsers: (done) => {
+    User.find({}, (err, res) => {
+      done(err, res);
+    });
+  },
+
   setUserConnectionStatus: (userId, status, done) => {
     User.update({
       _id: userId
