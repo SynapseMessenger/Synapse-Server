@@ -51,14 +51,12 @@ class ChatServer {
     dbHandler.findUser(username, (findUserError, user) => {
       if(!findUserError){
         if(user){
-          console.log("Existent user connected: ", user);
           dbHandler.setUserConnectionStatus(user, true, (connectedError) => {
             if(!connectedError) this.sendUserInitialData(user, socket);
           });
         } else {
           dbHandler.saveUserUsername(username, (saveUserError, user) => {
             if(!saveUserError){
-              console.log("Saved new user: ", user);
               printUserEvent(username, "entered the chat");
               this.sendUserInitialData(user, socket);
             }
@@ -74,15 +72,18 @@ class ChatServer {
       if(!onUsersError){
         dbHandler.pendingMessages(user._id, (pendingError, pendingMessages) => {
           if(!pendingError){
-            console.log("Pending messages: ", pendingMessages);
             socket.emit('init-connection-msg', {
               status: "connected",
               user,
-              allUsers
+              allUsers,
+              pendingMessages
             });
             socket.broadcast.emit('user-connected', user.username);
             this.saveUserSocket(user._id, socket);
             this.listenClientEvents(socket, user);
+            dbHandler.clearPendingMessages(user._id, (err, res) => {
+              if(err) console.log("Error clearing pending messages: ", err);
+            });
           }
         })
       }
@@ -97,29 +98,29 @@ class ChatServer {
     });
 
     socket.on('accept-chat', (data) => {
-      const emitterSocket = this.userSockets[data.receiverId];
-      emitterSocket.emit('accept-chat', { receiverId: data.emitterId });
+      dbHandler.isOnline(data.receiverId, (isOnError, isOnline) => {
+        if(!isOnError){
+          if(isOnline){
+            const emitterSocket = this.userSockets[data.receiverId];
+            emitterSocket.emit('accept-chat', { receiverId: data.emitterId });
+          }
+        }
+      });
     });
 
     socket.on('chat-msg', (data) => {
       const { receiverId, emitterId } = data.message;
       const { message } = data;
       dbHandler.isSessionEstablished(emitterId, receiverId, (session) => {
-        console.log("Chat message received!", data);
         if(session){
           dbHandler.isOnline(receiverId, (isOnError, isOnline) => {
-            console.log("Is online:", isOnline);
-            console.log("Is online error: ", isOnError);
             if(!isOnError){
               if(isOnline){
-                console.log("Sending message!!!!");
-                console.log("User sockets: ", this.userSockets);
                 const receiverSocket = this.userSockets[receiverId];
                 receiverSocket.emit('chat-msg', {
                   message
                 });
               } else {
-                console.log("Saving pendingMessage: ", message);
                 dbHandler.savePendingMessage(receiverId, message);
               }
             }

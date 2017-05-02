@@ -35,6 +35,14 @@ const Handler = {
     });
   },
 
+  clearPendingMessages: (userId, done) => {
+    User.update({
+      _id: userId
+    }, {
+      $set: { pendingMessages: [] }
+    }, done);
+  },
+
   setUserConnectionStatus: (userId, status, done) => {
     User.update({
       _id: userId
