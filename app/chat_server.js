@@ -94,7 +94,11 @@ class ChatServer {
 
     socket.on('init-chat', (data) => {
       const receiverSocket = this.userSockets[data.receiverId];
-      receiverSocket.emit('init-chat', { emitterId: user._id });
+      if(receiverSocket){
+        receiverSocket.emit('init-chat', { emitterId: user._id });
+      } else {
+        console.log("Error: Socket not found on: init-chat.");
+      }
     });
 
     socket.on('accept-chat', (data) => {
