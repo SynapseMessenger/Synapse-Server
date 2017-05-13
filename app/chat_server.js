@@ -21,14 +21,13 @@ class ChatServer {
   }
 
   start(){
-    this.connectToDB();
-    // TODO: Set all users to offline.
+    this.initDatabase();
     this.listenConnections();
     this.io.listen(this.port);
   }
 
   // TODO: Move to dbHandler ???
-  connectToDB(){
+  initDatabase(){
     mongoose.Promise = global.Promise;
     mongoose.connect(this.dbUrl);
     const db = mongoose.connection;
@@ -37,6 +36,7 @@ class ChatServer {
     });
     db.once('open', function() {
       console.log("Synapse Server - Database connected successfully.");
+      dbHandler.setAllUsersOffline();
     });
   }
 
@@ -102,7 +102,7 @@ class ChatServer {
 
     socket.on('init-chat', (data) => {
       const receiverSocket = this.userSockets[data.receiverId];
-      if(receiverSocket){
+      if (receiverSocket) {
         receiverSocket.emit('init-chat', { emitterId: user._id });
       } else {
         console.log("Error: Socket not found on: init-chat.");
@@ -111,10 +111,14 @@ class ChatServer {
 
     socket.on('accept-chat', (data) => {
       dbHandler.isOnline(data.receiverId, (isOnError, isOnline) => {
-        if(!isOnError){
-          if(isOnline){
+        if (!isOnError) {
+          if (isOnline) {
             const emitterSocket = this.userSockets[data.receiverId];
-            emitterSocket.emit('accept-chat', { receiverId: data.emitterId });
+            if (emitterSocket) {
+              emitterSocket.emit('accept-chat', { receiverId: data.emitterId });
+            } else {
+              console.log("Error: Socket not found on: accept-chat.");
+            }
           }
         }
       });
@@ -124,14 +128,18 @@ class ChatServer {
       const { receiverId, emitterId } = data.message;
       const { message } = data;
       dbHandler.isSessionEstablished(emitterId, receiverId, (session) => {
-        if(session){
+        if (session) {
           dbHandler.isOnline(receiverId, (isOnError, isOnline) => {
-            if(!isOnError){
-              if(isOnline){
+            if (!isOnError) {
+              if (isOnline) {
                 const receiverSocket = this.userSockets[receiverId];
-                receiverSocket.emit('chat-msg', {
-                  message
-                });
+                if (receiverSocket) {
+                  receiverSocket.emit('chat-msg', {
+                    message
+                  });
+                } else {
+                  console.log("Error: Socket not found on: accept-chat.");
+                }
               } else {
                 dbHandler.savePendingMessage(receiverId, message);
               }

@@ -59,7 +59,7 @@ const Handler = {
     }, done);
   },
 
-  findById: (userId, done)=> {
+  findById: (userId, done) => {
     if (!userId) return done(new Error("Id not provided."));
     else User.findById(userId, done);
   },
@@ -72,6 +72,13 @@ const Handler = {
       } else {
         done(new Error("User not found."))
       }
+    });
+  },
+
+  setAllUsersOffline: () => {
+    User.update({ online: true }, { online: false }, { multi: true }, (err, res) => {
+      if(!err) console.log("All users set to offline.");
+      else console.log("Error setting users offline: ", err);
     });
   },
 
