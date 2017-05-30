@@ -6,7 +6,7 @@ This server is being build using [Node.js][1] and [Socket.io][2], along with [Si
 
 > DISCLAIMER: This code has not yet received sufficient review by any qualified cryptographers to be considered in any way, shape, or form, safe.
 
-*Created by Marco Fernández Pranno*
+*Created by Marco Fernández Pranno, 2017*
 
 [1]: https://nodejs.org
 [2]: https://socket.io/
