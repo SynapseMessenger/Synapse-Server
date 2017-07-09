@@ -60,7 +60,9 @@ class ChatServer {
       if(!findUserError){
         if(user){
           dbHandler.setUserConnectionStatus(user, true, (connectedError) => {
-            if(!connectedError) this.sendUserInitialData(user, socket);
+            if(!connectedError) {
+              this.sendUserInitialData(user, socket);
+            }
           });
         } else {
           dbHandler.saveUserUsername(username, (saveUserError, user) => {
@@ -86,14 +88,28 @@ class ChatServer {
               allUsers,
               pendingMessages
             });
-            socket.broadcast.emit('user-connected', user.username);
             this.saveUserSocket(user._id, socket);
             this.listenClientEvents(socket, user);
+            this.notifyUserStatus(user, 'user-connected');
             dbHandler.clearPendingMessages(user._id, (err, res) => {
               if(err) console.log("Error clearing pending messages: ", err);
             });
           }
         })
+      }
+    });
+  }
+
+  notifyUserStatus(user, eventName) {
+    dbHandler.onlineUsers((err, res) => {
+      if (!err) {
+        res.forEach(usuario => {
+          if(usuario._id !== user._id) {
+            this.userSockets[usuario._id].emit(eventName, user);
+          }
+        });
+      } else {
+        console.log('Error: notifyConnectedUser.onlineUsers');
       }
     });
   }
@@ -153,6 +169,7 @@ class ChatServer {
       dbHandler.setUserConnectionStatus(user, false, (err) => {
         if(!err){
           printUserEvent(user.username, "disconnected");
+          this.notifyUserStatus(user, 'user-disconnected');
         } else {
           printUserEvent(user.username, "error on disconnect.");
         }
