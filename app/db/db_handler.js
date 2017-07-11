@@ -131,7 +131,49 @@ const Handler = {
         });
       } else done(new Error("Remove: user not found"));
     });
+  },
+
+  setUserKeys: (userId, keys, done) => {
+    User.update({
+      _id: userId
+    }, {
+      $set: { keys: keys }
+    }, done);
+  },
+
+  pushKeys: (userId, keys) => {
+    User.findByIdAndUpdate(userId,
+      { $pushAll: { keys: keys }},
+      (err, res) => {
+        if(err) console.log(err);
+      }
+    );
+  },
+
+  getKeys: (amount, userId, done) => {
+    this.findById(userId, (err, user) => {
+      if (!err) {
+        let keys = [];
+        const userKeys = user.keys;
+        const keyCount = userKeys.length;
+
+        if (amount > keyCount) {
+          done([], keyCount);
+        }
+
+        for (let i = 0; i < amount; i++) {
+          keys.push(userKeys.shift());
+        }
+        const keysLeft = keyCount - amount;
+        this.setUserKeys(userId, userKeys, done(keys, keysLeft));
+      } else {
+        console.log('Error getting prekeybudle');
+        done(null);
+      }
+    })
   }
+
+
 };
 
 module.exports = Handler;

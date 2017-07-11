@@ -12,6 +12,9 @@ const socketIo = require('socket.io');
 const mongoose = require('mongoose');
 const dbHandler = require('./db/db_handler.js');
 
+const MIN_KEY_AMOUNT = 5;
+const KEYS_PER_REQUEST = 20;
+
 class ChatServer {
   constructor(port, dbUrl) {
     this.io = socketIo();
@@ -61,6 +64,9 @@ class ChatServer {
         if(user){
           dbHandler.setUserConnectionStatus(user, true, (connectedError) => {
             if(!connectedError) {
+              if ( user.keys.length <= MIN_KEY_AMOUNT ) {
+                this.requestKeys(socket);
+              }
               this.sendUserInitialData(user, socket);
             }
           });
@@ -68,6 +74,7 @@ class ChatServer {
           dbHandler.saveUserUsername(username, (saveUserError, user) => {
             if(!saveUserError){
               printUserEvent(username, "entered the chat");
+              this.requestKeys(socket);
               this.sendUserInitialData(user, socket);
             }
           });
@@ -83,7 +90,6 @@ class ChatServer {
         dbHandler.pendingMessages(user._id, (pendingError, pendingMessages) => {
           if(!pendingError){
             socket.emit('init-connection-msg', {
-              status: "connected",
               user,
               allUsers,
               pendingMessages
@@ -114,6 +120,10 @@ class ChatServer {
     });
   }
 
+  requestKeys(socket) {
+    socket.emit('request-keys', { amount: KEYS_PER_REQUEST });
+  }
+
   listenClientEvents(socket, user){
 
     socket.on('init-chat', (data) => {
@@ -123,6 +133,23 @@ class ChatServer {
       } else {
         console.log("Error: Socket not found on: init-chat.");
       }
+    });
+
+    socket.on('receive-keys', (keys) => {
+      dbHandler.pushKeys(user._id, keys);
+    });
+
+    socket.on('request-keys', (userId) => {
+      dbHandler.getKeys(userId, (keys, keysLeft) => {
+        if (keys && keys.length > 0) {
+          socket.emit('receive-keys', { userId, keys });
+        }
+
+        const requestedKeysSocket = this.userSockets[userId];
+        if (keysLeft <= MIN_KEY_AMOUNT && requestedKeysSocket) {
+          this.requestKeys(requestedKeysSocket);
+        }
+      })
     });
 
     socket.on('accept-chat', (data) => {

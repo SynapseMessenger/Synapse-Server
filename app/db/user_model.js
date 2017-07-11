@@ -43,25 +43,38 @@ const userSchema = mongoose.Schema({
       emitterId: String,
       receiverId: String,
       time: Date
+  }],
+
+  keys: [{
+    identityKey: Buffer,
+    preKey: {
+      keyId: Number,
+      publicKey: Buffer
+    },
+    signedPreKey: {
+      keyId: Number,
+      publicKey: Buffer,
+      signature: Buffer
+    }
   }]
 });
 
 // Before saving the password, hash it.
-userSchema.pre('save', function(next) {
-  let doc = this;
-
-  if (!doc.isModified('password')) return next();
-
-  if (!dbConfig.regexp.password.test(doc.password))
-    return next(new Error("Save: Password not valid"));
-
-  bcrypt.hash(doc.password, saltRounds, (err, hash)=> {
-    if(err) return next(err);
-
-    doc.password = hash;
-    return next();
-  });
-});
+// userSchema.pre('save', function(next) {
+//   let doc = this;
+//
+//   if (!doc.isModified('password')) return next();
+//
+//   if (!dbConfig.regexp.password.test(doc.password))
+//     return next(new Error("Save: Password not valid"));
+//
+//   bcrypt.hash(doc.password, saltRounds, (err, hash)=> {
+//     if(err) return next(err);
+//
+//     doc.password = hash;
+//     return next();
+//   });
+// });
 
 // Before update, hash password.
 /*userSchema.pre('update', (next)=> {
