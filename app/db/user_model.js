@@ -47,6 +47,7 @@ const userSchema = mongoose.Schema({
 
   keys: [{
     identityKey: Buffer,
+    registrationId: Number,
     preKey: {
       keyId: Number,
       publicKey: Buffer

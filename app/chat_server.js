@@ -45,7 +45,7 @@ class ChatServer {
 
   listenConnections(){
     this.io.on('connection', (socket) => {
-      let username = socket.handshake.query.username;
+      const username = socket.handshake.query.username;
       if(username){
         this.handleClientConnection(socket, username);
       } else {
@@ -64,9 +64,7 @@ class ChatServer {
         if(user){
           dbHandler.setUserConnectionStatus(user, true, (connectedError) => {
             if(!connectedError) {
-              if ( user.keys.length <= MIN_KEY_AMOUNT ) {
-                this.requestKeys(socket);
-              }
+              printUserEvent(username, "entered the chat");
               this.sendUserInitialData(user, socket);
             }
           });
@@ -74,7 +72,6 @@ class ChatServer {
           dbHandler.saveUserUsername(username, (saveUserError, user) => {
             if(!saveUserError){
               printUserEvent(username, "entered the chat");
-              this.requestKeys(socket);
               this.sendUserInitialData(user, socket);
             }
           });
@@ -92,7 +89,8 @@ class ChatServer {
             socket.emit('init-connection-msg', {
               user,
               allUsers,
-              pendingMessages
+              pendingMessages,
+              keysReqAmount: KEYS_PER_REQUEST
             });
             this.saveUserSocket(user._id, socket);
             this.listenClientEvents(socket, user);
@@ -121,7 +119,7 @@ class ChatServer {
   }
 
   requestKeys(socket) {
-    socket.emit('request-keys', { amount: KEYS_PER_REQUEST });
+    socket.emit('request-keys', KEYS_PER_REQUEST );
   }
 
   listenClientEvents(socket, user){
