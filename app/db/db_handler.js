@@ -59,11 +59,6 @@ const Handler = {
     }, done);
   },
 
-  findById: (userId, done) => {
-    if (!userId) return done(new Error("Id not provided."));
-    else User.findById(userId, done);
-  },
-
   isOnline: (userId, done) => {
     if (!userId) return done(new Error("Id not provided."));
     else User.findById(userId, (err, res) => {
@@ -123,7 +118,7 @@ const Handler = {
   },
 
   removeUser: (userId, done)=> {
-    this.findById(userId, (err, result)=> {
+    User.findById(userId, (err, result)=> {
       if (err) done(err);
       else if (result) {
         result.remove((err)=> {
@@ -150,8 +145,9 @@ const Handler = {
     );
   },
 
-  getKeys: (amount, userId, done) => {
-    this.findById(userId, (err, user) => {
+  getKeys: (userId, amount, done) => {
+    debugger;
+    User.findById(userId, (err, user) => {
       if (!err) {
         let keys = [];
         const userKeys = user.keys;
@@ -165,9 +161,9 @@ const Handler = {
           keys.push(userKeys.shift());
         }
         const keysLeft = keyCount - amount;
-        this.setUserKeys(userId, userKeys, done(keys, keysLeft));
+        Handler.setUserKeys(userId, userKeys, done(keys, keysLeft));
       } else {
-        console.log('Error getting prekeybudle');
+        console.log('Error getting prekeybundle');
         done(null);
       }
     })

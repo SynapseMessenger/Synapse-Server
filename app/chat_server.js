@@ -137,13 +137,14 @@ class ChatServer {
       dbHandler.pushKeys(user._id, keys);
     });
 
-    socket.on('request-keys', (userId) => {
-      dbHandler.getKeys(userId, (keys, keysLeft) => {
+    socket.on('request-keys', (data) => {
+      console.log('Request for keys arrived: ', data);
+      dbHandler.getKeys(data.id, KEYS_PER_REQUEST, (keys, keysLeft) => {
         if (keys && keys.length > 0) {
-          socket.emit('receive-keys', { userId, keys });
+          socket.emit('receive-keys', { id: data.id, keys });
         }
 
-        const requestedKeysSocket = this.userSockets[userId];
+        const requestedKeysSocket = this.userSockets[data.id];
         if (keysLeft <= MIN_KEY_AMOUNT && requestedKeysSocket) {
           this.requestKeys(requestedKeysSocket);
         }
