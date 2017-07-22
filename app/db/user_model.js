@@ -46,16 +46,16 @@ const userSchema = mongoose.Schema({
   }],
 
   keys: [{
-    identityKey: Buffer,
+    identityKey: String,
     registrationId: Number,
     preKey: {
       keyId: Number,
-      publicKey: Buffer
+      publicKey: String
     },
     signedPreKey: {
       keyId: Number,
-      publicKey: Buffer,
-      signature: Buffer
+      publicKey: String,
+      signature: String
     }
   }]
 });

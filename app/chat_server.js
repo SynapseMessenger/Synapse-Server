@@ -169,24 +169,21 @@ class ChatServer {
     socket.on('chat-msg', (data) => {
       const { receiverId, emitterId } = data.message;
       const { message } = data;
-      dbHandler.isSessionEstablished(emitterId, receiverId, (session) => {
-        if (session) {
-          dbHandler.isOnline(receiverId, (isOnError, isOnline) => {
-            if (!isOnError) {
-              if (isOnline) {
-                const receiverSocket = this.userSockets[receiverId];
-                if (receiverSocket) {
-                  receiverSocket.emit('chat-msg', {
-                    message
-                  });
-                } else {
-                  console.log("Error: Socket not found on: accept-chat.");
-                }
-              } else {
-                dbHandler.savePendingMessage(receiverId, message);
-              }
+      dbHandler.isOnline(receiverId, (isOnError, isOnline) => {
+        if (!isOnError) {
+          if (isOnline) {
+            const receiverSocket = this.userSockets[receiverId];
+            if (receiverSocket) {
+              receiverSocket.emit('chat-msg', {
+                message
+              });
+            } else {
+              console.log("Error: Socket not found on: accept-chat.");
             }
-          });
+          } else {
+            // TODO: Fix this.
+            // dbHandler.savePendingMessage(receiverId, message);
+          }
         }
       });
     });
