@@ -8,32 +8,33 @@
 
 "use strict";
 
-const socketIo = require('socket.io');
+const socketIO = require('socket.io');
 const mongoose = require('mongoose');
 const express = require('express');
 const dbHandler = require('./db/handler.js');
 const dbConfig = require('./config/database.js');
-const wsConfig = require('./config/websockets.js');
+
+const INDEX = path.join(__dirname, 'index.html');
 const env = process.env.NODE_ENV || 'development';
+const wsPort = process.env.PORT || 9090;
 
 class ChatServer {
   constructor() {
-    this.port = wsConfig.port;
-    this.dbUrl =  dbConfig.url;
     this.userSockets = {};
-    this.expressServer = require('http').Server(express());;
   }
 
   start() {
-    this.io = socketIo(this.expressServer);
-    this.expressServer.listen(this.port, () => console.log(`Listening on ${ this.port }`));
+    this.server = express()
+                  .use((req, res) => res.sendFile(INDEX) )
+                  .listen(wsPort, () => console.log(`Listening on ${ wsPort }`));
+    this.io = socketIO(this.server);
     this.initDatabase();
     this.listenConnections();
   }
 
   initDatabase() {
     mongoose.Promise = global.Promise;
-    mongoose.connect(this.dbUrl, { useMongoClient: true });
+    mongoose.connect(dbConfig.url, { useMongoClient: true });
     const db = mongoose.connection;
     db.on('error', function(err) {
       console.error('DB connection error:' + err);
