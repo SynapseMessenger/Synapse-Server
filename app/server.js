@@ -14,6 +14,7 @@ const express = require('express');
 const dbHandler = require('./db/handler.js');
 const dbConfig = require('./config/database.js');
 const wsConfig = require('./config/websockets.js');
+const env = process.env.NODE_ENV || 'development';
 
 class ChatServer {
   constructor() {
@@ -24,8 +25,8 @@ class ChatServer {
   }
 
   start() {
-    this.expressServer.listen(this.port, () => console.log(`Listening on ${ this.port }`));
     this.io = socketIo(this.expressServer);
+    this.expressServer.listen(this.port, () => console.log(`Listening on ${ this.port }`));
     this.initDatabase();
     this.listenConnections();
   }
@@ -38,7 +39,8 @@ class ChatServer {
       console.error('DB connection error:' + err);
     });
     db.once('open', function() {
-      console.log("Synapse Server - Database connected successfully.");
+      console.log(`> Synapse Server running in [${env}].`);
+      console.log('> Success connecting to database.');
       dbHandler.setAllUsersOffline();
     });
   }
