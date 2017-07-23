@@ -12,9 +12,6 @@ const socketIo = require('socket.io');
 const mongoose = require('mongoose');
 const dbHandler = require('./db/db_handler.js');
 
-const MIN_KEY_AMOUNT = 5;
-const KEYS_PER_REQUEST = 20;
-
 class ChatServer {
   constructor(port, dbUrl) {
     this.io = socketIo();
@@ -23,14 +20,13 @@ class ChatServer {
     this.userSockets = {};
   }
 
-  start(){
+  start() {
     this.initDatabase();
     this.listenConnections();
     this.io.listen(this.port);
   }
 
-  // TODO: Move to dbHandler ???
-  initDatabase(){
+  initDatabase() {
     mongoose.Promise = global.Promise;
     mongoose.connect(this.dbUrl);
     const db = mongoose.connection;
@@ -43,7 +39,7 @@ class ChatServer {
     });
   }
 
-  listenConnections(){
+  listenConnections() {
     this.io.on('connection', (socket) => {
       const username = socket.handshake.query.username;
       if(username){
@@ -54,24 +50,24 @@ class ChatServer {
     });
   }
 
-  saveUserSocket(userId, socket){
+  saveUserSocket(userId, socket) {
     this.userSockets[userId] = socket;
   }
 
-  handleClientConnection(socket, username){
+  handleClientConnection(socket, username) {
     dbHandler.findUser(username, (findUserError, user) => {
-      if(!findUserError){
-        if(user){
+      if(!findUserError) {
+        if(user) {
           dbHandler.setUserConnectionStatus(user, true, (connectedError) => {
             if(!connectedError) {
-              printUserEvent(username, "entered the chat");
+              console.log(`[connected] ${username}`);
               this.sendUserInitialData(user, socket);
             }
           });
         } else {
           dbHandler.saveUserUsername(username, (saveUserError, user) => {
             if(!saveUserError){
-              printUserEvent(username, "entered the chat");
+              console.log(`[connected] ${username}`);
               this.sendUserInitialData(user, socket);
             }
           });
@@ -80,7 +76,7 @@ class ChatServer {
     });
   }
 
-  sendUserInitialData(user, socket){
+  sendUserInitialData(user, socket) {
     let errors = false;
     dbHandler.allUsers((onUsersError, allUsers) => {
       if(!onUsersError){
@@ -89,8 +85,7 @@ class ChatServer {
             socket.emit('init-connection-msg', {
               user,
               allUsers,
-              pendingMessages,
-              keysReqAmount: KEYS_PER_REQUEST
+              pendingMessages
             });
             this.saveUserSocket(user._id, socket);
             this.listenClientEvents(socket, user);
@@ -118,12 +113,7 @@ class ChatServer {
     });
   }
 
-  requestKeys(socket) {
-    socket.emit('request-keys', KEYS_PER_REQUEST );
-  }
-
   listenClientEvents(socket, user){
-
     socket.on('init-chat', (data) => {
       const receiverSocket = this.userSockets[data.receiverId];
       if (receiverSocket) {
@@ -133,22 +123,18 @@ class ChatServer {
       }
     });
 
-    socket.on('receive-keys', (keys) => {
-      dbHandler.pushKeys(user._id, keys);
+    socket.on('receive-key', data => {
+      const userSocket = this.userSockets[data.userId];
+      if (userSocket) {
+        userSocket.emit('receive-key', data);
+      }
     });
 
-    socket.on('request-keys', (data) => {
-      console.log('Request for keys arrived: ', data);
-      dbHandler.getKeys(data.id, KEYS_PER_REQUEST, (keys, keysLeft) => {
-        if (keys && keys.length > 0) {
-          socket.emit('receive-keys', { id: data.id, keys });
-        }
-
-        const requestedKeysSocket = this.userSockets[data.id];
-        if (keysLeft <= MIN_KEY_AMOUNT && requestedKeysSocket) {
-          this.requestKeys(requestedKeysSocket);
-        }
-      })
+    socket.on('request-key', (data) => {
+      const generatorSocket = this.userSockets[data.generatorId];
+      if (generatorSocket) {
+        generatorSocket.emit('request-key', data);
+      }
     });
 
     socket.on('accept-chat', (data) => {
@@ -191,19 +177,15 @@ class ChatServer {
     socket.on('disconnect', () => {
       dbHandler.setUserConnectionStatus(user, false, (err) => {
         if(!err){
-          printUserEvent(user.username, "disconnected");
+          console.log(`[disconnected] ${user.username}`);
           this.notifyUserStatus(user, 'user-disconnected');
         } else {
-          printUserEvent(user.username, "error on disconnect.");
+          console.log(`[disconnected] ${user.username}`);
         }
       });
     });
 
   }
-}
-
-function printUserEvent(username, event){
-    console.log( "<" + username + "> " + event + "." );
 }
 
 module.exports = ChatServer;
