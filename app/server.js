@@ -10,22 +10,24 @@
 
 const socketIo = require('socket.io');
 const mongoose = require('mongoose');
+const express = require('express');
 const dbHandler = require('./db/handler.js');
 const dbConfig = require('./config/database.js');
 const wsConfig = require('./config/websockets.js');
 
 class ChatServer {
   constructor() {
-    this.io = socketIo();
     this.port = wsConfig.port;
     this.dbUrl =  dbConfig.url;
     this.userSockets = {};
+    this.expressServer = require('http').Server(express());;
   }
 
   start() {
+    this.expressServer.listen(this.port, () => console.log(`Listening on ${ this.port }`));
+    this.io = socketIo(this.expressServer);
     this.initDatabase();
     this.listenConnections();
-    this.io.listen(this.port);
   }
 
   initDatabase() {

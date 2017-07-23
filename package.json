@@ -14,10 +14,10 @@
     "test": "test"
   },
   "dependencies": {
-    "express": "*",
-    "socket.io": "*",
     "bcrypt": "*",
-    "mongoose": "*"
+    "express": "^4.15.3",
+    "mongoose": "*",
+    "socket.io": "*"
   },
   "repository": {
     "type": "git",
