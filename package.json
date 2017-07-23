@@ -2,11 +2,11 @@
   "name": "synapse-server",
   "version": "0.0.1",
   "description": "Synapse server",
-  "main": "app.js",
+  "main": "index.js",
   "scripts": {
     "test": "npm test",
-    "start": "node app.js",
-    "debug": "node debug app.js"
+    "start": "node index.js",
+    "debug": "node debug index.js"
   },
   "author": "marcofp",
   "license": "MIT",

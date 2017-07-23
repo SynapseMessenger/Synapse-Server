@@ -8,6 +8,15 @@
 
 "use strict";
 
+let url = 'mongodb://localhost/synapse_server';
+
+const user = process.env.DB_USER || null;
+const password = process.env.DB_PASSWORD || null;
+
+if(user && password && process.env.NODE_ENV == 'production'){
+  url = 'mongodb://'+ user + ':' + password + '@ds135818.mlab.com:35818/synapse_db';
+}
+
 module.exports = {
   schema: {
     user: "user"
@@ -16,5 +25,6 @@ module.exports = {
     username: /^[a-zA-Z0-9_-]{4,25}$/,
     email: /^[\w-\.]+@[a-z_]+(\.[a-z]{2,3})+$/,
     password: /^[\w@#$*?¿\\\/\^\|':;,.\-%&(){}¡!~]{8,25}$/
-  }
+  },
+  url: url
 };

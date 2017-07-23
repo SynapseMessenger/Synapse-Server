@@ -8,7 +8,7 @@
 
 "use strict";
 
-const ChatServer = require('./app/chat_server.js');
+const ChatServer = require('./app/server.js');
 
 const chatServer = new ChatServer();
 

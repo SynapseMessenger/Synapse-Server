@@ -10,13 +10,15 @@
 
 const socketIo = require('socket.io');
 const mongoose = require('mongoose');
-const dbHandler = require('./db/db_handler.js');
+const dbHandler = require('./db/handler.js');
+const dbConfig = require('./config/database.js');
+const wsConfig = require('./config/websockets.js');
 
 class ChatServer {
-  constructor(port, dbUrl) {
+  constructor() {
     this.io = socketIo();
-    this.port = port || 9090;
-    this.dbUrl =  dbUrl || 'mongodb://localhost/synapse_server';
+    this.port = wsConfig.port;
+    this.dbUrl =  dbConfig.url;
     this.userSockets = {};
   }
 
@@ -28,7 +30,7 @@ class ChatServer {
 
   initDatabase() {
     mongoose.Promise = global.Promise;
-    mongoose.connect(this.dbUrl);
+    mongoose.connect(this.dbUrl, { useMongoClient: true });
     const db = mongoose.connection;
     db.on('error', function(err) {
       console.error('DB connection error:' + err);
