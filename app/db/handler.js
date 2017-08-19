@@ -128,47 +128,6 @@ const Handler = {
     });
   },
 
-  setUserKeys: (userId, keys, done) => {
-    User.update({
-      _id: userId
-    }, {
-      $set: { keys: keys }
-    }, done);
-  },
-
-  pushKeys: (userId, keys) => {
-    User.findByIdAndUpdate(userId,
-      { $pushAll: { keys: keys }},
-      (err, res) => {
-        if(err) console.log(err);
-      }
-    );
-  },
-
-  getKeys: (userId, amount, done) => {
-    debugger;
-    User.findById(userId, (err, user) => {
-      if (!err) {
-        let keys = [];
-        const userKeys = user.keys;
-        const keyCount = userKeys.length;
-
-        if (amount > keyCount) {
-          done([], keyCount);
-        }
-
-        for (let i = 0; i < amount; i++) {
-          keys.push(userKeys.shift());
-        }
-        const keysLeft = keyCount - amount;
-        Handler.setUserKeys(userId, userKeys, done(keys, keysLeft));
-      } else {
-        console.log('Error getting prekeybundle');
-        done(null);
-      }
-    })
-  }
-
 
 };
 
