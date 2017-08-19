@@ -89,7 +89,6 @@ class ChatServer {
     let errors = false;
     dbHandler.allUsers((onUsersError, allUsers) => {
       if(!onUsersError){
-        console.log('Sending user initial data');
         socket.emit('init-connection-msg', {
           user,
           allUsers
