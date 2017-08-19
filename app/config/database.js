@@ -12,9 +12,10 @@ let url = 'mongodb://localhost/synapse_server';
 
 const user = process.env.DB_USER || null;
 const password = process.env.DB_PASSWORD || null;
+const dbInfo = process.env.DB_INFO || null;
 
 if(user && password && process.env.NODE_ENV == 'production'){
-  url = 'mongodb://'+ user + ':' + password + '@ds135818.mlab.com:35818/synapse_db';
+  url = 'mongodb://'+ user + ':' + password + dbInfo;
 }
 
 module.exports = {
