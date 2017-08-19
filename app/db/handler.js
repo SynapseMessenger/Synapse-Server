@@ -43,14 +43,6 @@ const Handler = {
     });
   },
 
-  clearPendingMessages: (userId, done) => {
-    User.update({
-      _id: userId
-    }, {
-      $set: { pendingMessages: [] }
-    }, done);
-  },
-
   setUserConnectionStatus: (userId, status, done) => {
     User.update({
       _id: userId
@@ -75,30 +67,6 @@ const Handler = {
       if(!err) console.log("All users set to offline.");
       else console.log("Error setting users offline: ", err);
     });
-  },
-
-  pendingMessages: (userId, done) => {
-    if (!userId) return done(new Error("Id not provided."));
-    else User.findById(userId, (err, res) => {
-      if(!err){
-        done(err, res.pendingMessages);
-      } else {
-        done(new Error("User not found."))
-      }
-    });
-  },
-
-  savePendingMessage: (receiverId, message) => {
-    User.findByIdAndUpdate(receiverId,
-      { $push: { pendingMessages: message }},
-      (err, res) => {
-        if(err) console.log(err);
-      }
-    );
-  },
-
-  isSessionEstablished: (userA, userB, done) => {
-    done(true);
   },
 
 // Save online users in object on memory, not on DB ???

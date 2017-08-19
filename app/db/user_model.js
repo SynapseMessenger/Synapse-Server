@@ -37,27 +37,6 @@ const userSchema = mongoose.Schema({
     index: true,
     default: false
   },
-
-  pendingMessages: [{
-      text: String,
-      emitterId: String,
-      receiverId: String,
-      time: Date
-  }],
-
-  keys: [{
-    identityKey: String,
-    registrationId: Number,
-    preKey: {
-      keyId: Number,
-      publicKey: String
-    },
-    signedPreKey: {
-      keyId: Number,
-      publicKey: String,
-      signature: String
-    }
-  }]
 });
 
 // Before saving the password, hash it.

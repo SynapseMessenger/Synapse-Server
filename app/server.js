@@ -69,14 +69,14 @@ class ChatServer {
         if(user) {
           dbHandler.setUserConnectionStatus(user, true, (connectedError) => {
             if(!connectedError) {
-              console.log(`[connected] ${username}`);
+              console.log(`[existing user connected] ${username}`);
               this.sendUserInitialData(user, socket);
             }
           });
         } else {
           dbHandler.saveUserUsername(username, (saveUserError, user) => {
             if(!saveUserError){
-              console.log(`[connected] ${username}`);
+              console.log(`[new user connected] ${username}`);
               this.sendUserInitialData(user, socket);
             }
           });
@@ -89,22 +89,15 @@ class ChatServer {
     let errors = false;
     dbHandler.allUsers((onUsersError, allUsers) => {
       if(!onUsersError){
-        dbHandler.pendingMessages(user._id, (pendingError, pendingMessages) => {
-          if(!pendingError){
-            socket.emit('init-connection-msg', {
-              user,
-              allUsers,
-              pendingMessages
-            });
-            this.saveUserSocket(user._id, socket);
-            this.listenClientEvents(socket, user);
-            this.notifyUserStatus(user, 'user-connected');
-            dbHandler.clearPendingMessages(user._id, (err, res) => {
-              if(err) console.log("Error clearing pending messages: ", err);
-            });
-          }
-        })
-      }
+        console.log('Sending user initial data');
+        socket.emit('init-connection-msg', {
+          user,
+          allUsers
+        });
+        this.saveUserSocket(user._id, socket);
+        this.listenClientEvents(socket, user);
+        this.notifyUserStatus(user, 'user-connected');
+      } else console.log('Error sending user initial data.');
     });
   }
 
@@ -122,62 +115,19 @@ class ChatServer {
     });
   }
 
-  listenClientEvents(socket, user){
-    socket.on('init-chat', (data) => {
-      const receiverSocket = this.userSockets[data.receiverId];
-      if (receiverSocket) {
-        receiverSocket.emit('init-chat', { emitterId: user._id });
-      } else {
-        console.log("Error: Socket not found on: init-chat.");
-      }
-    });
-
-    socket.on('receive-key', data => {
-      const userSocket = this.userSockets[data.userId];
-      if (userSocket) {
-        userSocket.emit('receive-key', data);
-      }
-    });
-
-    socket.on('request-key', (data) => {
-      const generatorSocket = this.userSockets[data.generatorId];
-      if (generatorSocket) {
-        generatorSocket.emit('request-key', data);
-      }
-    });
-
-    socket.on('accept-chat', (data) => {
-      dbHandler.isOnline(data.receiverId, (isOnError, isOnline) => {
-        if (!isOnError) {
-          if (isOnline) {
-            const emitterSocket = this.userSockets[data.receiverId];
-            if (emitterSocket) {
-              emitterSocket.emit('accept-chat', { receiverId: data.emitterId });
-            } else {
-              console.log("Error: Socket not found on: accept-chat.");
-            }
-          }
-        }
-      });
-    });
-
+  listenClientEvents(socket, user) {
     socket.on('chat-msg', (data) => {
       const { receiverId, emitterId } = data.message;
       const { message } = data;
       dbHandler.isOnline(receiverId, (isOnError, isOnline) => {
-        if (!isOnError) {
-          if (isOnline) {
-            const receiverSocket = this.userSockets[receiverId];
-            if (receiverSocket) {
-              receiverSocket.emit('chat-msg', {
-                message
-              });
-            } else {
-              console.log("Error: Socket not found on: accept-chat.");
-            }
+        if (!isOnError && isOnline) {
+          const receiverSocket = this.userSockets[receiverId];
+          if (receiverSocket) {
+            receiverSocket.emit('chat-msg', {
+              message
+            });
           } else {
-            // TODO: Fix this.
-            // dbHandler.savePendingMessage(receiverId, message);
+            console.log("Error: Socket not found.");
           }
         }
       });
